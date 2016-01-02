@@ -68,7 +68,7 @@ public class UnsafeUtil {
 		long tmpCharArrayBaseOffset = 0;
 
 		try {
-			if (!Util.isAndroid) {
+			if (!Util.isAndroid && !Util.isIOS) {
 				java.lang.reflect.Field field = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
 				field.setAccessible(true);
 				tmpUnsafe = (sun.misc.Unsafe)field.get(null);
@@ -80,7 +80,7 @@ public class UnsafeUtil {
 				tmpLongArrayBaseOffset = tmpUnsafe.arrayBaseOffset(long[].class);
 				tmpDoubleArrayBaseOffset = tmpUnsafe.arrayBaseOffset(double[].class);
 			} else {
-				if (TRACE) trace("kryo", "Running on Android platform. Use of sun.misc.Unsafe should be disabled");
+				if (TRACE) trace("kryo", "Running on Mobile platform. Use of sun.misc.Unsafe should be disabled");
 			}
 		} catch (java.lang.Exception e) {
 			if (TRACE)

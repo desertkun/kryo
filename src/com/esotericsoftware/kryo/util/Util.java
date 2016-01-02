@@ -25,12 +25,15 @@ import static com.esotericsoftware.minlog.Log.*;
  * @author Nathan Sweet <misc@n4te.com> */
 public class Util {
 	static public boolean isAndroid;
+	static public boolean isIOS;
 	static {
 		try {
 			Class.forName("android.os.Process");
 			isAndroid = true;
 		} catch (Exception ignored) {
 		}
+
+		isIOS = java.lang.System.getProperty("os.name").equals("iOS");
 	}
 
 	/** Returns the primitive wrapper class for a primitive class.
