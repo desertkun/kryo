@@ -1,4 +1,4 @@
-/* Copyright (c) 2008, Nathan Sweet
+/* Copyright (c) 2008-2020, Nathan Sweet
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -27,15 +27,18 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.util.ObjectMap;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.ObjectStreamClass;
 
 /** Serializes objects using Java's built in serialization mechanism. Note that this is very inefficient and should be avoided if
  * possible.
  * @see Serializer
  * @see FieldSerializer
  * @see KryoSerializable
- * @author Nathan Sweet <misc@n4te.com> */
+ * @author Nathan Sweet */
 public class JavaSerializer extends Serializer {
 	public void write (Kryo kryo, Output output, Object object) {
 		try {
@@ -57,12 +60,33 @@ public class JavaSerializer extends Serializer {
 			ObjectMap graphContext = kryo.getGraphContext();
 			ObjectInputStream objectStream = (ObjectInputStream)graphContext.get(this);
 			if (objectStream == null) {
-				objectStream = new ObjectInputStream(input);
+				objectStream = new ObjectInputStreamWithKryoClassLoader(input, kryo);
 				graphContext.put(this, objectStream);
 			}
 			return objectStream.readObject();
 		} catch (Exception ex) {
 			throw new KryoException("Error during Java deserialization.", ex);
+		}
+	}
+
+	/** {@link ObjectInputStream} uses the last user-defined {@link ClassLoader}, which may not be the correct one. This is a known
+	 * Java issue and is often solved by using a specific class loader. See:
+	 * https://github.com/apache/spark/blob/v1.6.3/streaming/src/main/scala/org/apache/spark/streaming/Checkpoint.scala#L154
+	 * https://issues.apache.org/jira/browse/GROOVY-1627 */
+	private static class ObjectInputStreamWithKryoClassLoader extends ObjectInputStream {
+		private final Kryo kryo;
+
+		ObjectInputStreamWithKryoClassLoader (InputStream in, Kryo kryo) throws IOException {
+			super(in);
+			this.kryo = kryo;
+		}
+
+		protected Class resolveClass (ObjectStreamClass type) {
+			try {
+				return Class.forName(type.getName(), false, kryo.getClassLoader());
+			} catch (ClassNotFoundException ex) {
+				throw new KryoException("Class not found: " + type.getName(), ex);
+			}
 		}
 	}
 }

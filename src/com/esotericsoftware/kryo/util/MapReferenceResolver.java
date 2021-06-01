@@ -1,4 +1,4 @@
-/* Copyright (c) 2008, Nathan Sweet
+/* Copyright (c) 2008-2020, Nathan Sweet
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -19,18 +19,35 @@
 
 package com.esotericsoftware.kryo.util;
 
-import java.util.ArrayList;
-
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.ReferenceResolver;
 
-/** Uses an {@link IdentityObjectIntMap} to track objects that have already been written. This can handle graph with any number of
- * objects, but is slightly slower than {@link ListReferenceResolver} for graphs with few objects.
- * @author Nathan Sweet <misc@n4te.com> */
+import java.util.ArrayList;
+
+/** Uses an {@link IdentityObjectIntMap} to track objects that have already been written. This can handle a graph with any number
+ * of objects, but is slightly slower than {@link ListReferenceResolver} for graphs with few objects. Compared to
+ * {@link HashMapReferenceResolver}, this may provide better performance since the IdentityObjectIntMap does not normally allocate
+ * for get or put.
+ * @author Nathan Sweet */
 public class MapReferenceResolver implements ReferenceResolver {
+	private static final int DEFAULT_CAPACITY = 2048;
+
 	protected Kryo kryo;
-	protected final IdentityObjectIntMap writtenObjects = new IdentityObjectIntMap();
-	protected final ArrayList readObjects = new ArrayList();
+	protected final IdentityObjectIntMap<Object> writtenObjects = new IdentityObjectIntMap<>();
+	protected final ArrayList<Object> readObjects = new ArrayList<>();
+	private final int maximumCapacity;
+
+	/** Creates a reference resolver with a default maximum capacity of 2048 */
+	public MapReferenceResolver () {
+		this(DEFAULT_CAPACITY);
+	}
+
+	/** Creates a reference resolver with the specified maximum capacity. The default value of 2048 is good enough in most cases.
+	 * If the average object graph is larger than the default, increasing this value can provide better performance.
+	 * @param maximumCapacity the capacity to trim written and read objects to when {@link #reset()} is called */
+	public MapReferenceResolver (int maximumCapacity) {
+		this.maximumCapacity = maximumCapacity;
+	}
 
 	public void setKryo (Kryo kryo) {
 		this.kryo = kryo;
@@ -61,12 +78,17 @@ public class MapReferenceResolver implements ReferenceResolver {
 	}
 
 	public void reset () {
+		final int size = readObjects.size();
 		readObjects.clear();
-		writtenObjects.clear();
+		if (size > maximumCapacity) {
+			readObjects.trimToSize();
+			readObjects.ensureCapacity(maximumCapacity);
+		}
+		writtenObjects.clear(maximumCapacity);
 	}
 
-	/** Returns false for all primitive wrappers. */
+	/** Returns false for all primitive wrappers and enums. */
 	public boolean useReferences (Class type) {
-		return !Util.isWrapperClass(type);
+		return !Util.isWrapperClass(type) && !Util.isEnum(type);
 	}
 }

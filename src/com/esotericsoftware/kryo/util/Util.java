@@ -1,4 +1,4 @@
-/* Copyright (c) 2008, Nathan Sweet
+/* Copyright (c) 2008-2020, Nathan Sweet
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -21,107 +21,140 @@ package com.esotericsoftware.kryo.util;
 
 import static com.esotericsoftware.minlog.Log.*;
 
-/** A few utility methods, mostly for private use.
- * @author Nathan Sweet <misc@n4te.com> */
-public class Util {
-	static public boolean isAndroid;
-	static public boolean isIOS;
-	static {
-		try {
-			Class.forName("android.os.Process");
-			isAndroid = true;
-		} catch (Exception ignored) {
-		}
+import com.esotericsoftware.kryo.Serializer;
+import com.esotericsoftware.kryo.SerializerFactory;
+import com.esotericsoftware.kryo.serializers.ClosureSerializer;
+import com.esotericsoftware.kryo.serializers.FieldSerializer;
+import com.esotericsoftware.kryo.util.Generics.GenericType;
 
-		isIOS = java.lang.System.getProperty("os.name").equals("iOS");
+import java.lang.reflect.Type;
+import java.util.HashMap;
+import java.util.Map;
+
+/** A few utility methods, mostly for private use.
+ * @author Nathan Sweet */
+public class Util {
+	public static final boolean isAndroid = "Dalvik".equals(System.getProperty("java.vm.name"));
+
+	/** True if Unsafe is available. Unsafe can be disabled by setting the system property "kryo.unsafe" to "false". */
+	public static final boolean unsafe;
+	static {
+		boolean found = false;
+		if ("false".equals(System.getProperty("kryo.unsafe"))) {
+			if (TRACE) trace("kryo", "Unsafe is disabled.");
+		} else {
+			try {
+				found = Class.forName("com.esotericsoftware.kryo.unsafe.UnsafeUtil", true, FieldSerializer.class.getClassLoader())
+					.getField("unsafe").get(null) != null;
+			} catch (Throwable ex) {
+				if (TRACE) trace("kryo", "Unsafe is unavailable.", ex);
+			}
+		}
+		unsafe = found;
 	}
 
-	/** Returns the primitive wrapper class for a primitive class.
-	 * @param type Must be a primitive class. */
-	static public Class getWrapperClass (Class type) {
-		if (type == int.class)
-			return Integer.class;
-		else if (type == float.class)
-			return Float.class;
-		else if (type == boolean.class)
-			return Boolean.class;
-		else if (type == long.class)
-			return Long.class;
-		else if (type == byte.class)
-			return Byte.class;
-		else if (type == char.class)
-			return Character.class;
-		else if (type == short.class) //
-			return Short.class;
-		else if (type == double.class)
-			return Double.class;
-		return Void.class;
+	// Maximum reasonable array length. See: https://stackoverflow.com/questions/3038392/do-java-arrays-have-a-maximum-size
+	public static final int maxArraySize = Integer.MAX_VALUE - 8;
+
+	private static final Map<Class<?>, Class<?>> primitiveWrappers = new HashMap<>();
+	static {
+		primitiveWrappers.put(boolean.class, Boolean.class);
+		primitiveWrappers.put(byte.class, Byte.class);
+		primitiveWrappers.put(char.class, Character.class);
+		primitiveWrappers.put(double.class, Double.class);
+		primitiveWrappers.put(float.class, Float.class);
+		primitiveWrappers.put(int.class, Integer.class);
+		primitiveWrappers.put(long.class, Long.class);
+		primitiveWrappers.put(short.class, Short.class);
+	}
+
+	public static boolean isClassAvailable (String className) {
+		try {
+			Class.forName(className);
+			return true;
+		} catch (Exception ex) {
+			debug("kryo", "Class not available: " + className);
+			return false;
+		}
+	}
+
+	/** Returns the primitive wrapper class for a primitive class, or the specified class if it is not primitive. */
+	public static Class getWrapperClass (Class type) {
+		if (type == int.class) return Integer.class;
+		if (type == float.class) return Float.class;
+		if (type == boolean.class) return Boolean.class;
+		if (type == byte.class) return Byte.class;
+		if (type == long.class) return Long.class;
+		if (type == char.class) return Character.class;
+		if (type == double.class) return Double.class;
+		if (type == short.class) return Short.class;
+		return type;
 	}
 
 	/** Returns the primitive class for a primitive wrapper class. Otherwise returns the type parameter.
 	 * @param type Must be a wrapper class. */
-	static public Class getPrimitiveClass (Class type) {
-		if (type == Integer.class)
-			return int.class;
-		else if (type == Float.class)
-			return float.class;
-		else if (type == Boolean.class)
-			return boolean.class;
-		else if (type == Long.class)
-			return long.class;
-		else if (type == Byte.class)
-			return byte.class;
-		else if (type == Character.class)
-			return char.class;
-		else if (type == Short.class) //
-			return short.class;
-		else if (type == Double.class) //
-			return double.class;
-		else if (type == Void.class)
-			return void.class;
+	public static Class getPrimitiveClass (Class type) {
+		if (type == Integer.class) return int.class;
+		if (type == Float.class) return float.class;
+		if (type == Boolean.class) return boolean.class;
+		if (type == Byte.class) return byte.class;
+		if (type == Long.class) return long.class;
+		if (type == Character.class) return char.class;
+		if (type == Double.class) return double.class;
+		if (type == Short.class) return short.class;
+		if (type == Void.class) return void.class;
 		return type;
 	}
-	
-	static public boolean isWrapperClass (Class type) {
-		return type == Integer.class || type == Float.class || type == Boolean.class || type == Long.class || type == Byte.class
-			|| type == Character.class || type == Short.class || type == Double.class;
+
+	public static boolean isWrapperClass (Class type) {
+		return type == Integer.class || type == Float.class || type == Boolean.class || type == Byte.class || type == Long.class
+			|| type == Character.class || type == Double.class || type == Short.class;
+	}
+
+	public static boolean isEnum (Class type) {
+		// Use this rather than type.isEnum() to return true for an enum value that is an inner class, eg: enum A {b{}}
+		return Enum.class.isAssignableFrom(type) && type != Enum.class;
 	}
 
 	/** Logs a message about an object. The log level and the string format of the object depend on the object type. */
-	static public void log (String message, Object object) {
+	public static void log (String message, Object object, int position) {
 		if (object == null) {
-			if (TRACE) trace("kryo", message + ": null");
+			if (TRACE) trace("kryo", message + ": null" + pos(position));
 			return;
 		}
 		Class type = object.getClass();
-		if (type.isPrimitive() || type == Boolean.class || type == Byte.class || type == Character.class || type == Short.class
-			|| type == Integer.class || type == Long.class || type == Float.class || type == Double.class || type == String.class) {
-			if (TRACE) trace("kryo", message + ": " + string(object));
-		} else {
-			debug("kryo", message + ": " + string(object));
-		}
+		if (type.isPrimitive() || isWrapperClass(type) || type == String.class) {
+			if (TRACE) trace("kryo", message + ": " + string(object) + pos(position));
+		} else
+			debug("kryo", message + ": " + string(object) + pos(position));
+	}
+
+	public static String pos (int position) {
+		return position == -1 ? "" : " [" + position + "]";
 	}
 
 	/** Returns the object formatted as a string. The format depends on the object's type and whether {@link Object#toString()} has
 	 * been overridden. */
-	static public String string (Object object) {
+	public static String string (Object object) {
 		if (object == null) return "null";
 		Class type = object.getClass();
 		if (type.isArray()) return className(type);
+		String className = TRACE ? className(type) : type.getSimpleName();
 		try {
-			if (type.getMethod("toString", new Class[0]).getDeclaringClass() == Object.class)
-				return TRACE ? className(type) : type.getSimpleName();
+			if (type.getMethod("toString", new Class[0]).getDeclaringClass() == Object.class) return className;
 		} catch (Exception ignored) {
 		}
-                try {
-		    return String.valueOf(object);
-                } catch(Throwable e) {
-                    return (TRACE ? className(type) : type.getSimpleName()) + "(Exception " + e + " in toString)";
-                }
+		try {
+			String value = String.valueOf(object) + " (" + className + ")";
+			return value.length() > 97 ? value.substring(0, 97) + "..." : value;
+		} catch (Throwable ex) {
+			return className + " (toString exception: " + ex + ")";
+		}
 	}
 
 	/** Returns the class formatted as a string. The format varies depending on the type. */
-	static public String className (Class type) {
+	public static String className (Class type) {
+		if (type == null) return "null";
 		if (type.isArray()) {
 			Class elementClass = getElementClass(type);
 			StringBuilder buffer = new StringBuilder(16);
@@ -137,8 +170,49 @@ public class Util {
 		return type.getName();
 	}
 
+	/** Returns the classes formatted as a string. The format varies depending on the type. */
+	public static String classNames (Class[] types) {
+		StringBuilder buffer = new StringBuilder(32);
+		for (int i = 0, n = types.length; i < n; i++) {
+			if (i > 0) buffer.append(", ");
+			buffer.append(className(types[i]));
+		}
+		return buffer.toString();
+	}
+
+	/** Returns the class formatted as a string. If the class has a canonical name, the canonical name is returned, otherwise it
+	 * returns the result of {@link #className(Class)} */
+	public static String canonicalName (Class type) {
+		if (type == null) return "null";
+		final String canonicalName = type.getCanonicalName();
+		return canonicalName != null ? canonicalName : className(type);
+	}
+
+	public static String simpleName (Type type) {
+		if (type instanceof Class) return ((Class)type).getSimpleName();
+		return type.toString(); // Java 8: getTypeName
+	}
+
+	public static String simpleName (Class type, GenericType genericType) {
+		StringBuilder buffer = new StringBuilder(32);
+		buffer.append((type.isArray() ? getElementClass(type) : type).getSimpleName());
+		if (genericType.arguments != null) {
+			buffer.append('<');
+			for (int i = 0, n = genericType.arguments.length; i < n; i++) {
+				if (i > 0) buffer.append(", ");
+				buffer.append(genericType.arguments[i].toString());
+			}
+			buffer.append('>');
+		}
+		if (type.isArray()) {
+			for (int i = 0, n = getDimensionCount(type); i < n; i++)
+				buffer.append("[]");
+		}
+		return buffer.toString();
+	}
+
 	/** Returns the number of dimensions of an array. */
-	static public int getDimensionCount (Class arrayClass) {
+	public static int getDimensionCount (Class arrayClass) {
 		int depth = 0;
 		Class nextClass = arrayClass.getComponentType();
 		while (nextClass != null) {
@@ -149,31 +223,51 @@ public class Util {
 	}
 
 	/** Returns the base element type of an n-dimensional array class. */
-	static public Class getElementClass (Class arrayClass) {
+	public static Class getElementClass (Class arrayClass) {
 		Class elementClass = arrayClass;
 		while (elementClass.getComponentType() != null)
 			elementClass = elementClass.getComponentType();
 		return elementClass;
 	}
-	
-	/** Converts an "int" value between endian systems. */
-	static public int swapInt(int i) {
-		return   ((i & 0xFF) << 24) | 
-			    ((i & 0xFF00) << 8) | 
-			   ((i & 0xFF0000) >> 8)| 
-			   ((i >> 24) & 0xFF);
+
+	public static boolean isAssignableTo (Class<?> from, Class<?> to) {
+		if (to == Object.class) return true;
+		if (to.isAssignableFrom(from)) return true;
+		if (from.isPrimitive()) return isPrimitiveWrapperOf(to, from);
+		if (to.isPrimitive()) return isPrimitiveWrapperOf(from, to);
+		if (from == ClosureSerializer.Closure.class) return to.isInterface();
+		return false;
 	}
 
-	/** Converts a "long" value between endian systems. */
-	static public long swapLong(long value) {
-        return
-            ( ( ( value >> 0 ) & 0xff ) << 56 )|
-            ( ( ( value >> 8 ) & 0xff ) << 48 )|
-            ( ( ( value >> 16 ) & 0xff ) << 40 )|
-            ( ( ( value >> 24 ) & 0xff ) << 32 )|
-            ( ( ( value >> 32 ) & 0xff ) << 24 )|
-            ( ( ( value >> 40 ) & 0xff ) << 16 )|
-            ( ( ( value >> 48 ) & 0xff ) << 8 )|
-            ( ( ( value >> 56 ) & 0xff ) << 0 );
-    }
+	private static boolean isPrimitiveWrapperOf (Class<?> targetClass, Class<?> primitive) {
+		if (!primitive.isPrimitive()) throw new IllegalArgumentException("First argument has to be primitive type");
+		return primitiveWrappers.get(primitive) == targetClass;
+	}
+
+	public static boolean isAscii (String value) {
+		for (int i = 0, n = value.length(); i < n; i++)
+			if (value.charAt(i) > 127) return false;
+		return true;
+	}
+
+	/** @param factoryClass Must have a constructor that takes a serializer class, or a zero argument constructor.
+	 * @param serializerClass May be null if the factory already knows the serializer class to create. */
+	public static <T extends SerializerFactory> T newFactory (Class<T> factoryClass, Class<? extends Serializer> serializerClass) {
+		try {
+			if (serializerClass != null) {
+				try {
+					return factoryClass.getConstructor(Class.class).newInstance(serializerClass);
+				} catch (NoSuchMethodException ex) {
+				}
+			}
+			return factoryClass.newInstance();
+		} catch (Exception ex) {
+			if (serializerClass == null)
+				throw new IllegalArgumentException("Unable to create serializer factory: " + factoryClass.getName(), ex);
+			else {
+				throw new IllegalArgumentException("Unable to create serializer factory \"" + factoryClass.getName()
+					+ "\" for serializer class: " + className(serializerClass), ex);
+			}
+		}
+	}
 }

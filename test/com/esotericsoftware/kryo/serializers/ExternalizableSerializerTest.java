@@ -1,4 +1,4 @@
-/* Copyright (c) 2008, Nathan Sweet
+/* Copyright (c) 2008-2020, Nathan Sweet
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -19,6 +19,8 @@
 
 package com.esotericsoftware.kryo.serializers;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.esotericsoftware.kryo.KryoTestCase;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
@@ -31,175 +33,179 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-/**
- * @author Robert DiFalco <robert.difalco@gmail.com>
- */
-public class ExternalizableSerializerTest extends KryoTestCase {
-	 public void testRegister () {
-		  kryo.register(TestClass.class, new ExternalizableSerializer());
-		  kryo.register(String.class, new DefaultSerializers.StringSerializer());
-		  TestClass test = new TestClass();
-		  test.stringField = "fubar";
-		  test.intField = 54321;
+import org.junit.jupiter.api.Test;
 
-		  roundTrip(11, 11, test);
-		  roundTrip(11, 11, test);
-		  roundTrip(11, 11, test);
-	 }
+/** @author Robert DiFalco <robert.difalco@gmail.com> */
+class ExternalizableSerializerTest extends KryoTestCase {
+	@Test
+	void testRegister () {
+		kryo.register(TestClass.class, new ExternalizableSerializer());
+		kryo.register(String.class, new DefaultSerializers.StringSerializer());
+		TestClass test = new TestClass();
+		test.stringField = "fubar";
+		test.intField = 54321;
 
-	 public void testDefault () {
-		  kryo.setRegistrationRequired(false);
-		  kryo.addDefaultSerializer(Externalizable.class, new ExternalizableSerializer());
-		  TestClass test = new TestClass();
-		  test.stringField = "fubar";
-		  test.intField = 54321;
-		  roundTrip(90, 90, test);
-		  roundTrip(90, 90, test);
-		  roundTrip(90, 90, test);
-	 }
+		roundTrip(11, test);
+		roundTrip(11, test);
+		roundTrip(11, test);
+	}
 
-	 public void testReadResolve () {
-		  kryo.setRegistrationRequired(false);
-		  kryo.addDefaultSerializer(Externalizable.class, ExternalizableSerializer.class);
+	@Test
+	void testDefault () {
+		kryo.setRegistrationRequired(false);
+		kryo.addDefaultSerializer(Externalizable.class, new ExternalizableSerializer());
+		TestClass test = new TestClass();
+		test.stringField = "fubar";
+		test.intField = 54321;
+		roundTrip(88, test);
+		roundTrip(88, test);
+		roundTrip(88, test);
+	}
 
-		  ReadResolvable test = new ReadResolvable("foobar");
-		  Output output = new Output(1024);
-		  kryo.writeClassAndObject(output, test);
-		  output.flush();
+	@Test
+	void testReadResolve () {
+		kryo.setRegistrationRequired(false);
+		kryo.addDefaultSerializer(Externalizable.class, ExternalizableSerializer.class);
 
-		  Input input = new Input(output.getBuffer());
-		  Object result = kryo.readClassAndObject(input);
-		  input.close();
+		ReadResolvable test = new ReadResolvable("foobar");
+		Output output = new Output(1024);
+		kryo.writeClassAndObject(output, test);
+		output.flush();
 
-		  // ensure read resolve happened!
-		  assertEquals(String.class, result.getClass());
-		  assertEquals(test.value, result);
-	 }
+		Input input = new Input(output.getBuffer());
+		Object result = kryo.readClassAndObject(input);
+		input.close();
 
-	 public void testTwoClasses () {
-		  kryo.setRegistrationRequired(false);
-		  kryo.addDefaultSerializer(Externalizable.class, ExternalizableSerializer.class);
+		// ensure read resolve happened!
+		assertEquals(String.class, result.getClass());
+		assertEquals(test.value, result);
+	}
 
-		  ReadResolvable test1 = new ReadResolvable("foobar");
-		  TestClass test2 = new TestClass();
-		  test2.stringField = "fubar";
-		  test2.intField = 54321;
+	@Test
+	void testTwoClasses () {
+		kryo.setRegistrationRequired(false);
+		kryo.addDefaultSerializer(Externalizable.class, ExternalizableSerializer.class);
 
-		  List list = new ArrayList();
-		  list.add(test1);
-		  list.add(test2);
-		  Output output = new Output(1024);
-		  kryo.writeClassAndObject(output, list);
-		  output.flush();
+		ReadResolvable test1 = new ReadResolvable("foobar");
+		TestClass test2 = new TestClass();
+		test2.stringField = "fubar";
+		test2.intField = 54321;
 
-		  Input input = new Input(output.getBuffer());
-		  List result = (List)kryo.readClassAndObject(input);
-		  input.close();
+		List list = new ArrayList();
+		list.add(test1);
+		list.add(test2);
+		Output output = new Output(1024);
+		kryo.writeClassAndObject(output, list);
+		output.flush();
 
-		  // ensure read resolve happened!
-		  assertEquals(result.get(0), test1.value);
-		  assertEquals(result.get(1), test2);
-	 }
+		Input input = new Input(output.getBuffer());
+		List result = (List)kryo.readClassAndObject(input);
+		input.close();
 
-	 public static class TestClass implements Externalizable {
-		  String stringField;
-		  int intField;
+		// ensure read resolve happened!
+		assertEquals(result.get(0), test1.value);
+		assertEquals(result.get(1), test2);
+	}
 
-		  public boolean equals (Object obj) {
-				if (this == obj) {
-					 return true;
-				}
-				if (obj == null) {
-					 return false;
-				}
-				if (getClass() != obj.getClass()) {
-					 return false;
-				}
-				TestClass other = (TestClass)obj;
-				if (intField != other.intField) {
-					 return false;
-				}
-				if (stringField == null) {
-					 if (other.stringField != null) {
-						  return false;
-					 }
-				} else if (!stringField.equals(other.stringField)) {
-					 return false;
-				}
+	public static class TestClass implements Externalizable {
+		String stringField;
+		int intField;
+
+		public boolean equals (Object obj) {
+			if (this == obj) {
 				return true;
-		  }
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (getClass() != obj.getClass()) {
+				return false;
+			}
+			TestClass other = (TestClass)obj;
+			if (intField != other.intField) {
+				return false;
+			}
+			if (stringField == null) {
+				if (other.stringField != null) {
+					return false;
+				}
+			} else if (!stringField.equals(other.stringField)) {
+				return false;
+			}
+			return true;
+		}
 
-		  public void writeExternal (ObjectOutput out) throws IOException {
-				out.writeObject(stringField);
-				out.writeInt(intField);
-		  }
+		public void writeExternal (ObjectOutput out) throws IOException {
+			out.writeObject(stringField);
+			out.writeInt(intField);
+		}
 
-		  public void readExternal (ObjectInput in) throws IOException, ClassNotFoundException {
-				stringField = (String)in.readObject();
-				intField = in.readInt();
-		  }
-	 }
+		public void readExternal (ObjectInput in) throws IOException, ClassNotFoundException {
+			stringField = (String)in.readObject();
+			intField = in.readInt();
+		}
+	}
 
-	 public static class AnotherTestClass implements Externalizable {
-		  private Date dateField;
-		  private long longField;
+	public static class AnotherTestClass implements Externalizable {
+		private Date dateField;
+		private long longField;
 
-		  public boolean equals (Object obj) {
-				if (this == obj) {
-					 return true;
-				}
-				if (obj == null) {
-					 return false;
-				}
-				if (getClass() != obj.getClass()) {
-					 return false;
-				}
-				AnotherTestClass other = (AnotherTestClass)obj;
-				if (longField != other.longField) {
-					 return false;
-				}
-				if (dateField == null) {
-					 if (other.dateField != null) {
-						  return false;
-					 }
-				} else if (!dateField.equals(other.dateField)) {
-					 return false;
-				}
+		public boolean equals (Object obj) {
+			if (this == obj) {
 				return true;
-		  }
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (getClass() != obj.getClass()) {
+				return false;
+			}
+			AnotherTestClass other = (AnotherTestClass)obj;
+			if (longField != other.longField) {
+				return false;
+			}
+			if (dateField == null) {
+				if (other.dateField != null) {
+					return false;
+				}
+			} else if (!dateField.equals(other.dateField)) {
+				return false;
+			}
+			return true;
+		}
 
-		  public void writeExternal (ObjectOutput out) throws IOException {
-				out.writeObject(dateField);
-				out.writeLong(longField);
-		  }
+		public void writeExternal (ObjectOutput out) throws IOException {
+			out.writeObject(dateField);
+			out.writeLong(longField);
+		}
 
-		  public void readExternal (ObjectInput in) throws IOException, ClassNotFoundException {
-				dateField = (Date)in.readObject();
-				longField = in.readInt();
-		  }
-	 }
+		public void readExternal (ObjectInput in) throws IOException, ClassNotFoundException {
+			dateField = (Date)in.readObject();
+			longField = in.readInt();
+		}
+	}
 
-	 public static class ReadResolvable implements Externalizable {
-		  String value;
-		  private Object makeSureNullWorks;
+	public static class ReadResolvable implements Externalizable {
+		String value;
+		private Object makeSureNullWorks;
 
-		  public ReadResolvable () {
-		  }
+		public ReadResolvable () {
+		}
 
-		  public ReadResolvable (String value) {
-				this.value = value;
-		  }
+		public ReadResolvable (String value) {
+			this.value = value;
+		}
 
-		  public void writeExternal (ObjectOutput out) throws IOException {
-				out.writeObject(value);
-		  }
+		public void writeExternal (ObjectOutput out) throws IOException {
+			out.writeObject(value);
+		}
 
-		  public void readExternal (ObjectInput in) throws IOException, ClassNotFoundException {
-				value = (String)in.readObject();
-		  }
+		public void readExternal (ObjectInput in) throws IOException, ClassNotFoundException {
+			value = (String)in.readObject();
+		}
 
-		  private Object readResolve () {
-				return value;
-		  }
-	 }
+		private Object readResolve () {
+			return value;
+		}
+	}
 }

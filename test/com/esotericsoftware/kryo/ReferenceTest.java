@@ -1,4 +1,4 @@
-/* Copyright (c) 2008, Nathan Sweet
+/* Copyright (c) 2008-2020, Nathan Sweet
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -19,6 +19,8 @@
 
 package com.esotericsoftware.kryo;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
@@ -26,15 +28,16 @@ import com.esotericsoftware.kryo.serializers.MapSerializer;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.TreeMap;
 
-public class ReferenceTest extends KryoTestCase {
-	static public class Ordering {
+import org.junit.jupiter.api.Test;
+
+class ReferenceTest extends KryoTestCase {
+	public static class Ordering {
 		public String order;
 	}
 
-	static public class Stuff extends TreeMap {
+	public static class Stuff extends TreeMap {
 		public Ordering ordering;
 
 		public Stuff (Ordering ordering) {
@@ -42,7 +45,8 @@ public class ReferenceTest extends KryoTestCase {
 		}
 	}
 
-	public void testChildObjectBeforeReference () {
+	@Test
+	void testChildObjectBeforeReference () {
 		Ordering ordering = new Ordering();
 		ordering.order = "assbackwards";
 		Stuff stuff = new Stuff(ordering);
@@ -51,13 +55,14 @@ public class ReferenceTest extends KryoTestCase {
 		stuff.put("self", stuff);
 
 		Kryo kryo = new Kryo();
-		kryo.addDefaultSerializer(Stuff.class, new MapSerializer() {
-			public void write (Kryo kryo, Output output, Map object) {
-				kryo.writeObjectOrNull(output, ((Stuff)object).ordering, Ordering.class);
-				super.write(kryo, output, object);
+		kryo.setRegistrationRequired(false);
+		kryo.setReferences(true);
+		kryo.addDefaultSerializer(Stuff.class, new MapSerializer<Stuff>() {
+			protected void writeHeader (Kryo kryo, Output output, Stuff map) {
+				kryo.writeObjectOrNull(output, map.ordering, Ordering.class);
 			}
 
-			protected Map create (Kryo kryo, Input input, Class<Map> type) {
+			protected Stuff create (Kryo kryo, Input input, Class<? extends Stuff> type, int size) {
 				Ordering ordering = kryo.readObjectOrNull(input, Ordering.class);
 				return new Stuff(ordering);
 			}
@@ -72,11 +77,12 @@ public class ReferenceTest extends KryoTestCase {
 		assertEquals(stuff.ordering.order, stuff2.ordering.order);
 		assertEquals(stuff.get("key"), stuff2.get("key"));
 		assertEquals(stuff.get("something"), stuff2.get("something"));
-		assertTrue(stuff.get("self") == stuff);
-		assertTrue(stuff2.get("self") == stuff2);
+		assertSame(stuff.get("self"), stuff);
+		assertSame(stuff2.get("self"), stuff2);
 	}
 
-	public void testReadingNestedObjectsFirst () {
+	@Test
+	void testReadingNestedObjectsFirst () {
 		ArrayList list = new ArrayList();
 		list.add("1");
 		list.add("1");
@@ -88,17 +94,31 @@ public class ReferenceTest extends KryoTestCase {
 		kryo.setRegistrationRequired(false);
 		kryo.register(ArrayList.class);
 		Class<List> subListClass = (Class<List>)subList.getClass();
-		if(subListClass.getName().equals("java.util.ArrayList$SubList")) {
+		if (subListClass.getName().equals("java.util.ArrayList$SubList")) {
 			// This is JDK > = 1.7
-			kryo.register(subList.getClass(), new ArraySubListSerializer());			
+			kryo.register(subList.getClass(), new ArraySubListSerializer());
 		} else {
 			kryo.register(subList.getClass(), new SubListSerializer());
-		    
+
 		}
-		roundTrip(26, 26,  subList);
+		roundTrip(23, subList);
 	}
 
-	static public class SubListSerializer extends Serializer<List> {
+	@Test
+	void testReadInvalidReference() {
+		kryo.setReferences(true);
+		kryo.register(Ordering.class);
+		final Input input = new Input(new byte[]{3});
+		try {
+			kryo.readObject(input, Ordering.class);
+		} catch (KryoException ex) {
+			assertTrue(ex.getMessage().contains("Unable to resolve reference"));
+			return;
+		}
+		fail("Exception was expected");
+	}
+
+	public static class SubListSerializer extends Serializer<List> {
 		private Field listField, offsetField, sizeField;
 
 		public SubListSerializer () {
@@ -127,7 +147,7 @@ public class ReferenceTest extends KryoTestCase {
 			}
 		}
 
-		public List read (Kryo kryo, Input input, Class<List> type) {
+		public List read (Kryo kryo, Input input, Class<? extends List> type) {
 			List list = (List)kryo.readClassAndObject(input);
 			int fromIndex = input.readInt();
 			int count = input.readInt();
@@ -135,13 +155,13 @@ public class ReferenceTest extends KryoTestCase {
 		}
 	}
 
-	static public class ArraySubListSerializer extends Serializer<List> {
+	public static class ArraySubListSerializer extends Serializer<List> {
 		private Field parentField, offsetField, sizeField;
 
 		public ArraySubListSerializer () {
 			try {
 				Class sublistClass = Class.forName("java.util.ArrayList$SubList");
-				parentField = sublistClass.getDeclaredField("parent");
+				parentField = getParentField(sublistClass);
 				offsetField = sublistClass.getDeclaredField("offset");
 				sizeField = sublistClass.getDeclaredField("size");
 				parentField.setAccessible(true);
@@ -149,6 +169,15 @@ public class ReferenceTest extends KryoTestCase {
 				sizeField.setAccessible(true);
 			} catch (Exception ex) {
 				throw new RuntimeException(ex);
+			}
+		}
+
+		private Field getParentField(Class sublistClass) throws NoSuchFieldException {
+			try {
+				// java 9+
+				return sublistClass.getDeclaredField("root");
+			} catch(NoSuchFieldException e) {
+				return sublistClass.getDeclaredField("parent");
 			}
 		}
 
@@ -164,7 +193,7 @@ public class ReferenceTest extends KryoTestCase {
 			}
 		}
 
-		public List read (Kryo kryo, Input input, Class<List> type) {
+		public List read (Kryo kryo, Input input, Class<? extends List> type) {
 			List list = (List)kryo.readClassAndObject(input);
 			int offset = input.readInt();
 			int size = input.readInt();

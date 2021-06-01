@@ -1,4 +1,4 @@
-/* Copyright (c) 2008, Nathan Sweet
+/* Copyright (c) 2008-2020, Nathan Sweet
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -21,23 +21,24 @@ package com.esotericsoftware.kryo.io;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
 /** An InputStream whose source is a {@link ByteBuffer}.
- * @author Nathan Sweet <misc@n4te.com> */
+ * @author Nathan Sweet */
 public class ByteBufferInputStream extends InputStream {
 	private ByteBuffer byteBuffer;
 
+	/** Creates an uninitialized stream that cannot be used until {@link #setByteBuffer(ByteBuffer)} is called. */
 	public ByteBufferInputStream () {
 	}
 
 	/** Creates a stream with a new non-direct buffer of the specified size. The position and limit of the buffer is zero. */
 	public ByteBufferInputStream (int bufferSize) {
 		this(ByteBuffer.allocate(bufferSize));
-		byteBuffer.flip();
+		flipBuffer(byteBuffer);
 	}
 
-	/** Creates an uninitialized stream that cannot be used until {@link #setByteBuffer(ByteBuffer)} is called. */
 	public ByteBufferInputStream (ByteBuffer byteBuffer) {
 		this.byteBuffer = byteBuffer;
 	}
@@ -66,4 +67,9 @@ public class ByteBufferInputStream extends InputStream {
 	public int available () throws IOException {
 		return byteBuffer.remaining();
 	}
+
+	private void flipBuffer (Buffer buffer) {
+		buffer.flip();
+	}
+
 }

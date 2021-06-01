@@ -3,7 +3,7 @@
 	<parent>
 		<groupId>com.github.desertkun</groupId>
 		<artifactId>kryo-parent</artifactId>
-		<version>3.0.3-RC2</version>
+		<version>5.1.2-SNAPSHOT</version>
 		<relativePath>./pom.xml</relativePath>
 	</parent>
 	<artifactId>kryo-shaded</artifactId>

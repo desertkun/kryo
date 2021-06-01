@@ -1,4 +1,4 @@
-/* Copyright (c) 2008, Nathan Sweet
+/* Copyright (c) 2008-2020, Nathan Sweet
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -19,6 +19,12 @@
 
 package com.esotericsoftware.kryo.serializers;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.KryoException;
+import com.esotericsoftware.kryo.Serializer;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+
 import java.io.IOException;
 
 import javax.crypto.Cipher;
@@ -26,17 +32,11 @@ import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.spec.SecretKeySpec;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryo.Serializer;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-
 /** Encrypts data using the blowfish cipher.
- * @author Nathan Sweet <misc@n4te.com> */
+ * @author Nathan Sweet */
 public class BlowfishSerializer extends Serializer {
 	private final Serializer serializer;
-	static private SecretKeySpec keySpec;
+	private static SecretKeySpec keySpec;
 
 	public BlowfishSerializer (Serializer serializer, byte[] key) {
 		this.serializer = serializer;
@@ -63,14 +63,14 @@ public class BlowfishSerializer extends Serializer {
 	public Object read (Kryo kryo, Input input, Class type) {
 		Cipher cipher = getCipher(Cipher.DECRYPT_MODE);
 		CipherInputStream cipherInput = new CipherInputStream(input, cipher);
-		return serializer.read(kryo, new Input(cipherInput, 256), type); 
+		return serializer.read(kryo, new Input(cipherInput, 256), type);
 	}
 
 	public Object copy (Kryo kryo, Object original) {
 		return serializer.copy(kryo, original);
 	}
 
-	static private Cipher getCipher (int mode) {
+	private static Cipher getCipher (int mode) {
 		try {
 			Cipher cipher = Cipher.getInstance("Blowfish");
 			cipher.init(mode, keySpec);

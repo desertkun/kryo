@@ -1,4 +1,4 @@
-/* Copyright (c) 2008, Nathan Sweet
+/* Copyright (c) 2008-2020, Nathan Sweet
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -19,44 +19,36 @@
 
 package com.esotericsoftware.kryo;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.esotericsoftware.kryo.util.DefaultClassResolver;
-import com.esotericsoftware.kryo.util.DefaultStreamFactory;
-import com.esotericsoftware.kryo.util.FastestStreamFactory;
 import com.esotericsoftware.kryo.util.MapReferenceResolver;
+
 import java.lang.ref.WeakReference;
-import static junit.framework.Assert.assertNull;
-import junit.framework.TestCase;
 
-/**
- * Tests for detecting PermGen memory leaks.
- * 
- * @author Tumi <serverperformance@gmail.com>
- */
-public class GarbageCollectionTest extends TestCase {
+import org.junit.jupiter.api.Test;
 
-	public void testDefaultStreamFactory () {
-		final DefaultStreamFactory strongRefToStreamFactory = new DefaultStreamFactory();
-		Kryo kryo = new Kryo(new DefaultClassResolver(), new MapReferenceResolver(), strongRefToStreamFactory);
-		WeakReference<Kryo> kryoWeakRef = new WeakReference<Kryo>(kryo);
+/** Tests for detecting PermGen memory leaks.
+ * @author Tumi <serverperformance@gmail.com> */
+class GarbageCollectionTest {
+	@Test
+	void test () {
+		Kryo kryo = new Kryo(new DefaultClassResolver(), new MapReferenceResolver());
+		WeakReference<Kryo> kryoWeakRef = new WeakReference(kryo);
 		kryo = null; // remove strong ref, now kryo is only weak-reachable
 		reclaim(kryoWeakRef);
 	}
 
-	public void testFastestStreamFactory () {
-		final FastestStreamFactory strongRefToStreamFactory = new FastestStreamFactory();
-		Kryo kryo = new Kryo(new DefaultClassResolver(), new MapReferenceResolver(), strongRefToStreamFactory);
-		WeakReference<Kryo> kryoWeakRef = new WeakReference<Kryo>(kryo);
-		kryo = null; // remove strong ref, now kryo is only weak-reachable
-		reclaim(kryoWeakRef);
-	}
-	
 	private void reclaim (WeakReference<Kryo> kryoWeakRef) {
 		// Forces GC
 		System.gc();
 		// Waits for recaim the weaked-reachable kryo instance
 		int times = 0;
 		while (kryoWeakRef.get() != null && times < 30) { // limit 3 seconds
-			try { Thread.sleep(100); } catch (InterruptedException ignored) {}
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException ignored) {
+			}
 			times++;
 		}
 		assertNull(kryoWeakRef.get());

@@ -1,4 +1,4 @@
-/* Copyright (c) 2008, Nathan Sweet
+/* Copyright (c) 2008-2020, Nathan Sweet
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -24,46 +24,44 @@ import com.esotericsoftware.kryo.Kryo;
 import java.io.IOException;
 import java.io.ObjectInput;
 
-/**
- * A kryo implementation of {@link ObjectInput}. Note that this is not an implementation of {@link java.io.ObjectInputStream}
- * which has special handling for serialization in Java such as support for readResolve.
- *
- * @author Robert DiFalco <robert.difalco@gmail.com>
- */
+/** An {@link ObjectInput} which reads data from an {@link Input}.
+ * <p>
+ * Note this is not an implementation of {@link java.io.ObjectInputStream} which has special handling for Java serialization, such
+ * as support for readResolve.
+ * @author Robert DiFalco <robert.difalco@gmail.com> */
 public class KryoObjectInput extends KryoDataInput implements ObjectInput {
+	private final Kryo kryo;
 
-	 private final Kryo kryo;
+	public KryoObjectInput (Kryo kryo, Input input) {
+		super(input);
+		this.kryo = kryo;
+	}
 
-	 public KryoObjectInput (Kryo kryo, Input in) {
-		  super(in);
-		  this.kryo = kryo;
-	 }
+	public Object readObject () throws ClassNotFoundException, IOException {
+		return kryo.readClassAndObject(input);
+	}
 
-	 public Object readObject () throws ClassNotFoundException, IOException {
-		  return kryo.readClassAndObject(input);
-	 }
+	public int read () throws IOException {
+		return input.read();
+	}
 
-	 public int read () throws IOException {
-		  return input.read();
-	 }
+	public int read (byte[] b) throws IOException {
+		return input.read(b);
+	}
 
-	 public int read (byte[] b) throws IOException {
-		  return input.read(b);
-	 }
+	public int read (byte[] b, int off, int len) throws IOException {
+		return input.read(b, off, len);
+	}
 
-	 public int read (byte[] b, int off, int len) throws IOException {
-		  return input.read(b, off, len);
-	 }
+	public long skip (long n) throws IOException {
+		return input.skip(n);
+	}
 
-	 public long skip (long n) throws IOException {
-		  return input.skip(n);
-	 }
+	public int available () throws IOException {
+		return 0;
+	}
 
-	 public int available () throws IOException {
-		  return 0;
-	 }
-
-	 public void close () throws IOException {
-		  input.close();
-	 }
+	public void close () throws IOException {
+		input.close();
+	}
 }

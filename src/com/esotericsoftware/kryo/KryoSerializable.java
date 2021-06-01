@@ -1,4 +1,4 @@
-/* Copyright (c) 2008, Nathan Sweet
+/* Copyright (c) 2008-2020, Nathan Sweet
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -23,11 +23,12 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.DefaultSerializers.KryoSerializableSerializer;
 
-/** Allows implementing classes to perform their own serialization. Hand written serialization can be more efficient in some cases.
+/** Allows implementing classes to perform their own serialization. Hand written serialization can be more efficient in some
+ * cases.
  * <p>
  * The default serializer for KryoSerializable is {@link KryoSerializableSerializer}, which uses {@link Kryo#newInstance(Class)}
  * to construct the class.
- * @author Nathan Sweet <misc@n4te.com> */
+ * @author Nathan Sweet */
 public interface KryoSerializable {
 	public void write (Kryo kryo, Output output);
 

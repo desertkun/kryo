@@ -1,4 +1,4 @@
-/* Copyright (c) 2008, Nathan Sweet
+/* Copyright (c) 2008-2020, Nathan Sweet
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -19,52 +19,34 @@
 
 package com.esotericsoftware.kryo;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.util.ArrayList;
 
-public class CopyTest extends KryoTestCase {
-	protected void setUp () throws Exception {
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+class CopyTest extends KryoTestCase {
+	@BeforeEach
+	public void setUp () throws Exception {
 		super.setUp();
 		kryo.setRegistrationRequired(false);
 	}
 
-	public void testBasic () {
+	@Test
+	void testBasic () {
 		ArrayList test = new ArrayList();
 		test.add("one");
 		test.add("two");
 		test.add("three");
 
 		ArrayList copy = kryo.copy(test);
-		assertTrue(test != copy);
+		assertNotSame(test, copy);
 		assertEquals(test, copy);
 	}
 
-	public void testNested () {
-		ArrayList test = new ArrayList();
-		test.add("one");
-		test.add("two");
-		test.add("three");
-
-		ArrayList test2 = new ArrayList();
-		test2.add(1);
-		test2.add(2f);
-		test2.add(3d);
-		test2.add((byte)4);
-		test2.add((short)5);
-		test.add(test2);
-
-		ArrayList copy = kryo.copy(test);
-		assertTrue(test != copy);
-		assertTrue(test.get(3) != copy.get(3));
-		assertEquals(test, copy);
-
-		kryo.setCopyReferences(false);
-		copy = kryo.copy(test);
-		assertTrue(test != copy);
-		assertTrue(test.get(3) != copy.get(3));
-		assertEquals(test, copy);
-	}
-
-	public void testReferences () {
+	@Test
+	void testNested () {
 		ArrayList test = new ArrayList();
 		test.add("one");
 		test.add("two");
@@ -77,26 +59,54 @@ public class CopyTest extends KryoTestCase {
 		test2.add((byte)4);
 		test2.add((short)5);
 		test.add(test2);
+
+		ArrayList copy = kryo.copy(test);
+		assertNotSame(test, copy);
+		assertNotSame(test.get(3), copy.get(3));
+		assertEquals(test, copy);
+
+		kryo.setCopyReferences(false);
+		copy = kryo.copy(test);
+		assertNotSame(test, copy);
+		assertNotSame(test.get(3), copy.get(3));
+		assertEquals(test, copy);
+	}
+
+	@Test
+	void testReferences () {
+		ArrayList test = new ArrayList();
+		test.add("one");
+		test.add("two");
+		test.add("three");
+
+		ArrayList test2 = new ArrayList();
+		test2.add(1);
+		test2.add(2f);
+		test2.add(3d);
+		test2.add((byte)4);
+		test2.add((short)5);
+		test.add(test2);
 		test.add(test2);
 		test.add(test2);
 
 		ArrayList copy = kryo.copy(test);
-		assertTrue(test != copy);
+		assertNotSame(test, copy);
 		assertEquals(test, copy);
-		assertTrue(test.get(3) != copy.get(4));
-		assertTrue(copy.get(3) == copy.get(4));
-		assertTrue(copy.get(3) == copy.get(5));
+		assertNotSame(test.get(3), copy.get(4));
+		assertSame(copy.get(3), copy.get(4));
+		assertSame(copy.get(3), copy.get(5));
 
 		kryo.setCopyReferences(false);
 		copy = kryo.copy(test);
-		assertTrue(test != copy);
+		assertNotSame(test, copy);
 		assertEquals(test, copy);
-		assertTrue(test.get(3) != copy.get(4));
-		assertTrue(copy.get(3) != copy.get(4));
-		assertTrue(copy.get(3) != copy.get(5));
+		assertNotSame(test.get(3), copy.get(4));
+		assertNotSame(copy.get(3), copy.get(4));
+		assertNotSame(copy.get(3), copy.get(5));
 	}
 
-	public void testCircularReferences () {
+	@Test
+	void testCircularReferences () {
 		ArrayList test = new ArrayList();
 		test.add("one");
 		test.add("two");
@@ -104,11 +114,11 @@ public class CopyTest extends KryoTestCase {
 		test.add(test);
 
 		ArrayList copy = kryo.copy(test);
-		assertTrue(test != copy);
+		assertNotSame(test, copy);
 		assertEquals(copy.get(0), "one");
 		assertEquals(copy.get(1), "two");
 		assertEquals(copy.get(2), "three");
-		assertTrue(copy.get(3) == copy);
+		assertSame(copy.get(3), copy);
 
 		Moo root = new Moo();
 		Moo moo1 = new Moo();
@@ -119,16 +129,17 @@ public class CopyTest extends KryoTestCase {
 		moo2.moo = moo3;
 		moo3.moo = root;
 		Moo root2 = kryo.copy(root);
-		assertTrue(root != root2);
-		assertTrue(root.moo != root2.moo);
-		assertTrue(root.moo.moo != root2.moo.moo);
-		assertTrue(root.moo.moo.moo != root2.moo.moo.moo);
-		assertTrue(root.moo.moo.moo.moo != root2.moo.moo.moo.moo);
-		assertTrue(root.moo.moo.moo.moo == root);
-		assertTrue(root2.moo.moo.moo.moo == root2);
+		assertNotSame(root, root2);
+		assertNotSame(root.moo, root2.moo);
+		assertNotSame(root.moo.moo, root2.moo.moo);
+		assertNotSame(root.moo.moo.moo, root2.moo.moo.moo);
+		assertNotSame(root.moo.moo.moo.moo, root2.moo.moo.moo.moo);
+		assertSame(root.moo.moo.moo.moo, root);
+		assertSame(root2.moo.moo.moo.moo, root2);
 	}
 
-	public void testShallow () {
+	@Test
+	void testShallow () {
 		ArrayList test = new ArrayList();
 		test.add("one");
 		test.add("two");
@@ -143,12 +154,12 @@ public class CopyTest extends KryoTestCase {
 		test.add(test2);
 
 		ArrayList copy = kryo.copyShallow(test);
-		assertTrue(test != copy);
-		assertTrue(test.get(3) == copy.get(3));
+		assertNotSame(test, copy);
+		assertSame(test.get(3), copy.get(3));
 		assertEquals(test, copy);
 	}
 
-	static public class Moo {
+	public static class Moo {
 		Moo moo;
 	}
 }

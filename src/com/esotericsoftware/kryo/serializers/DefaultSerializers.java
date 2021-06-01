@@ -1,4 +1,4 @@
-/* Copyright (c) 2008, Nathan Sweet
+/* Copyright (c) 2008-2020, Nathan Sweet
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following
@@ -19,23 +19,8 @@
 
 package com.esotericsoftware.kryo.serializers;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Currency;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.GregorianCalendar;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import static com.esotericsoftware.kryo.Kryo.*;
+import static com.esotericsoftware.kryo.util.Util.*;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.KryoException;
@@ -45,145 +30,131 @@ import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 
-import static com.esotericsoftware.kryo.Kryo.*;
-import static com.esotericsoftware.kryo.util.Util.*;
 import java.lang.reflect.Constructor;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.Charset;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Currency;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.GregorianCalendar;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.PriorityQueue;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 /** Contains many serializer classes that are provided by {@link Kryo#addDefaultSerializer(Class, Class) default}.
- * @author Nathan Sweet <misc@n4te.com> */
+ * @author Nathan Sweet */
 public class DefaultSerializers {
-	static public class VoidSerializer extends Serializer {
-		{
-			setImmutable(true);
-		}
-
+	public static class VoidSerializer extends ImmutableSerializer {
 		public void write (Kryo kryo, Output output, Object object) {
-			
 		}
 
 		public Object read (Kryo kryo, Input input, Class type) {
 			return null;
 		}
 	}
-	static public class BooleanSerializer extends Serializer<Boolean> {
-		{
-			setImmutable(true);
-		}
 
+	public static class BooleanSerializer extends ImmutableSerializer<Boolean> {
 		public void write (Kryo kryo, Output output, Boolean object) {
 			output.writeBoolean(object);
 		}
 
-		public Boolean read (Kryo kryo, Input input, Class<Boolean> type) {
+		public Boolean read (Kryo kryo, Input input, Class<? extends Boolean> type) {
 			return input.readBoolean();
 		}
 	}
 
-	static public class ByteSerializer extends Serializer<Byte> {
-		{
-			setImmutable(true);
-		}
-
+	public static class ByteSerializer extends ImmutableSerializer<Byte> {
 		public void write (Kryo kryo, Output output, Byte object) {
 			output.writeByte(object);
 		}
 
-		public Byte read (Kryo kryo, Input input, Class<Byte> type) {
+		public Byte read (Kryo kryo, Input input, Class<? extends Byte> type) {
 			return input.readByte();
 		}
 	}
 
-	static public class CharSerializer extends Serializer<Character> {
-		{
-			setImmutable(true);
-		}
-
+	public static class CharSerializer extends ImmutableSerializer<Character> {
 		public void write (Kryo kryo, Output output, Character object) {
 			output.writeChar(object);
 		}
 
-		public Character read (Kryo kryo, Input input, Class<Character> type) {
+		public Character read (Kryo kryo, Input input, Class<? extends Character> type) {
 			return input.readChar();
 		}
 	}
 
-	static public class ShortSerializer extends Serializer<Short> {
-		{
-			setImmutable(true);
-		}
-
+	public static class ShortSerializer extends ImmutableSerializer<Short> {
 		public void write (Kryo kryo, Output output, Short object) {
 			output.writeShort(object);
 		}
 
-		public Short read (Kryo kryo, Input input, Class<Short> type) {
+		public Short read (Kryo kryo, Input input, Class<? extends Short> type) {
 			return input.readShort();
 		}
 	}
 
-	static public class IntSerializer extends Serializer<Integer> {
-		{
-			setImmutable(true);
-		}
-
+	public static class IntSerializer extends ImmutableSerializer<Integer> {
 		public void write (Kryo kryo, Output output, Integer object) {
 			output.writeInt(object, false);
 		}
 
-		public Integer read (Kryo kryo, Input input, Class<Integer> type) {
+		public Integer read (Kryo kryo, Input input, Class<? extends Integer> type) {
 			return input.readInt(false);
 		}
 	}
 
-	static public class LongSerializer extends Serializer<Long> {
-		{
-			setImmutable(true);
-		}
-
+	public static class LongSerializer extends ImmutableSerializer<Long> {
 		public void write (Kryo kryo, Output output, Long object) {
-			output.writeLong(object, false);
+			output.writeVarLong(object, false);
 		}
 
-		public Long read (Kryo kryo, Input input, Class<Long> type) {
-			return input.readLong(false);
+		public Long read (Kryo kryo, Input input, Class<? extends Long> type) {
+			return input.readVarLong(false);
 		}
 	}
 
-	static public class FloatSerializer extends Serializer<Float> {
-		{
-			setImmutable(true);
-		}
-
+	public static class FloatSerializer extends ImmutableSerializer<Float> {
 		public void write (Kryo kryo, Output output, Float object) {
 			output.writeFloat(object);
 		}
 
-		public Float read (Kryo kryo, Input input, Class<Float> type) {
+		public Float read (Kryo kryo, Input input, Class<? extends Float> type) {
 			return input.readFloat();
 		}
 	}
 
-	static public class DoubleSerializer extends Serializer<Double> {
-		{
-			setImmutable(true);
-		}
-
+	public static class DoubleSerializer extends ImmutableSerializer<Double> {
 		public void write (Kryo kryo, Output output, Double object) {
 			output.writeDouble(object);
 		}
 
-		public Double read (Kryo kryo, Input input, Class<Double> type) {
+		public Double read (Kryo kryo, Input input, Class<? extends Double> type) {
 			return input.readDouble();
 		}
 	}
 
 	/** @see Output#writeString(String) */
-	static public class StringSerializer extends Serializer<String> {
+	public static class StringSerializer extends ImmutableSerializer<String> {
 		{
-			setImmutable(true);
 			setAcceptsNull(true);
 		}
 
@@ -191,50 +162,48 @@ public class DefaultSerializers {
 			output.writeString(object);
 		}
 
-		public String read (Kryo kryo, Input input, Class<String> type) {
+		public String read (Kryo kryo, Input input, Class<? extends String> type) {
 			return input.readString();
 		}
 	}
 
 	/** Serializer for {@link BigInteger} and any subclass.
 	 * @author Tumi <serverperformance@gmail.com> (enhacements) */
-	static public class BigIntegerSerializer extends Serializer<BigInteger> {
+	public static class BigIntegerSerializer extends ImmutableSerializer<BigInteger> {
 		{
-			setImmutable(true);
 			setAcceptsNull(true);
 		}
 
 		public void write (Kryo kryo, Output output, BigInteger object) {
 			if (object == null) {
-				output.writeVarInt(NULL, true);
+				output.writeByte(NULL);
 				return;
 			}
-			BigInteger value = (BigInteger)object;
 			// fast-path optimizations for BigInteger.ZERO constant
-			if (value == BigInteger.ZERO) {
-				output.writeVarInt(2, true);
+			if (object == BigInteger.ZERO) {
+				output.writeByte(2);
 				output.writeByte(0);
 				return;
 			}
 			// default behaviour
-			byte[] bytes = value.toByteArray();
+			byte[] bytes = object.toByteArray();
 			output.writeVarInt(bytes.length + 1, true);
 			output.writeBytes(bytes);
 		}
 
-		public BigInteger read (Kryo kryo, Input input, Class<BigInteger> type) {
+		public BigInteger read (Kryo kryo, Input input, Class<? extends BigInteger> type) {
 			int length = input.readVarInt(true);
 			if (length == NULL) return null;
 			byte[] bytes = input.readBytes(length - 1);
 			if (type != BigInteger.class && type != null) {
-				// For subclasses, use reflection
+				// Use reflection for subclasses.
 				try {
-					Constructor<BigInteger> constructor = type.getConstructor(byte[].class);
+					Constructor<? extends BigInteger> constructor = type.getConstructor(byte[].class);
 					if (!constructor.isAccessible()) {
 						try {
 							constructor.setAccessible(true);
+						} catch (SecurityException ignored) {
 						}
-						catch (SecurityException se) {}
 					}
 					return constructor.newInstance(bytes);
 				} catch (Exception ex) {
@@ -242,7 +211,7 @@ public class DefaultSerializers {
 				}
 			}
 			if (length == 2) {
-				// fast-path optimizations for BigInteger constants
+				// Fast-path optimizations for BigInteger constants.
 				switch (bytes[0]) {
 				case 0:
 					return BigInteger.ZERO;
@@ -258,44 +227,42 @@ public class DefaultSerializers {
 
 	/** Serializer for {@link BigDecimal} and any subclass.
 	 * @author Tumi <serverperformance@gmail.com> (enhacements) */
-	static public class BigDecimalSerializer extends Serializer<BigDecimal> {
+	public static class BigDecimalSerializer extends ImmutableSerializer<BigDecimal> {
 		private final BigIntegerSerializer bigIntegerSerializer = new BigIntegerSerializer();
 
 		{
 			setAcceptsNull(true);
-			setImmutable(true);
 		}
 
 		public void write (Kryo kryo, Output output, BigDecimal object) {
 			if (object == null) {
-				output.writeVarInt(NULL, true);
+				output.writeByte(NULL);
 				return;
 			}
-			BigDecimal value = (BigDecimal)object;
 			// fast-path optimizations for BigDecimal constants
-			if (value == BigDecimal.ZERO) {
+			if (object == BigDecimal.ZERO) {
 				bigIntegerSerializer.write(kryo, output, BigInteger.ZERO);
 				output.writeInt(0, false); // for backwards compatibility
 				return;
 			}
 			// default behaviour
-			bigIntegerSerializer.write(kryo, output, value.unscaledValue());
-			output.writeInt(value.scale(), false);
+			bigIntegerSerializer.write(kryo, output, object.unscaledValue());
+			output.writeInt(object.scale(), false);
 		}
 
-		public BigDecimal read (Kryo kryo, Input input, Class<BigDecimal> type) {
+		public BigDecimal read (Kryo kryo, Input input, Class<? extends BigDecimal> type) {
 			BigInteger unscaledValue = bigIntegerSerializer.read(kryo, input, BigInteger.class);
 			if (unscaledValue == null) return null;
 			int scale = input.readInt(false);
 			if (type != BigDecimal.class && type != null) {
 				// For subclasses, use reflection
 				try {
-					Constructor<BigDecimal> constructor = type.getConstructor(BigInteger.class, int.class);
+					Constructor<? extends BigDecimal> constructor = type.getConstructor(BigInteger.class, int.class);
 					if (!constructor.isAccessible()) {
 						try {
 							constructor.setAccessible(true);
+						} catch (SecurityException ignored) {
 						}
-						catch (SecurityException se) {}
 					}
 					return constructor.newInstance(unscaledValue, scale);
 				} catch (Exception ex) {
@@ -311,30 +278,29 @@ public class DefaultSerializers {
 		}
 	}
 
-	static public class ClassSerializer extends Serializer<Class> {
+	public static class ClassSerializer extends ImmutableSerializer<Class> {
 		{
-			setImmutable(true);
 			setAcceptsNull(true);
 		}
 
-		public void write (Kryo kryo, Output output, Class object) {
-			kryo.writeClass(output, object);
-			output.writeByte((object != null && object.isPrimitive()) ? 1 : 0);
+		public void write (Kryo kryo, Output output, Class type) {
+			kryo.writeClass(output, type);
+			if (type != null && (type.isPrimitive() || isWrapperClass(type))) output.writeBoolean(type.isPrimitive());
 		}
 
-		public Class read (Kryo kryo, Input input, Class<Class> type) {
+		public Class read (Kryo kryo, Input input, Class<? extends Class> ignored) {
 			Registration registration = kryo.readClass(input);
-			int isPrimitive = input.read();
-			Class typ = registration != null ? registration.getType() : null;
-			if (typ == null || !typ.isPrimitive()) return typ;
-			return (isPrimitive == 1) ? typ : getWrapperClass(typ);
+			if (registration == null) return null;
+			Class type = registration.getType();
+			if (!type.isPrimitive() || input.readBoolean()) return type;
+			return getWrapperClass(type);
 		}
 	}
 
 	/** Serializer for {@link Date}, {@link java.sql.Date}, {@link Time}, {@link Timestamp} and any other subclass.
 	 * @author Tumi <serverperformance@gmail.com> */
-	static public class DateSerializer extends Serializer<Date> {
-		private Date create(Kryo kryo, Class<? extends Date> type, long time) throws KryoException {
+	public static class DateSerializer extends Serializer<Date> {
+		private Date create (Kryo kryo, Class<? extends Date> type, long time) throws KryoException {
 			if (type == Date.class || type == null) {
 				return new Date(time);
 			}
@@ -355,24 +321,24 @@ public class DefaultSerializers {
 				if (!constructor.isAccessible()) {
 					try {
 						constructor.setAccessible(true);
+					} catch (SecurityException ignored) {
 					}
-					catch (SecurityException se) {}
 				}
 				return constructor.newInstance(time);
 			} catch (Exception ex) {
 				// default strategy
-				Date d = (Date)kryo.newInstance(type);
+				Date d = kryo.newInstance(type);
 				d.setTime(time);
 				return d;
 			}
 		}
-		
+
 		public void write (Kryo kryo, Output output, Date object) {
-			output.writeLong(object.getTime(), true);
+			output.writeVarLong(object.getTime(), true);
 		}
 
-		public Date read (Kryo kryo, Input input, Class<Date> type) {
-			return create(kryo, type, input.readLong(true));
+		public Date read (Kryo kryo, Input input, Class<? extends Date> type) {
+			return create(kryo, type, input.readVarLong(true));
 		}
 
 		public Date copy (Kryo kryo, Date original) {
@@ -380,9 +346,8 @@ public class DefaultSerializers {
 		}
 	}
 
-	static public class EnumSerializer extends Serializer<Enum> {
+	public static class EnumSerializer extends ImmutableSerializer<Enum> {
 		{
-			setImmutable(true);
 			setAcceptsNull(true);
 		}
 
@@ -390,7 +355,13 @@ public class DefaultSerializers {
 
 		public EnumSerializer (Class<? extends Enum> type) {
 			enumConstants = type.getEnumConstants();
-			if (enumConstants == null) throw new IllegalArgumentException("The type must be an enum: " + type);
+			// We allow the serialization of the (abstract!) Enum.class (instead of an actual "user" enum),
+			// which also creates an EnumSerializer instance during Kryo.writeClass with the following trace:
+			// ClassSerializer.write -> Kryo.writeClass -> DefaultClassResolver.writeClass
+			// -> Kryo.getDefaultSerializer -> ReflectionSerializerFactory.makeSerializer(kryo, EnumSerializer, Enum.class)
+			// This EnumSerializer instance is expected to be never called for write/read.
+			if (enumConstants == null && !Enum.class.equals(type))
+				throw new IllegalArgumentException("The type must be an enum: " + type);
 		}
 
 		public void write (Kryo kryo, Output output, Enum object) {
@@ -401,7 +372,7 @@ public class DefaultSerializers {
 			output.writeVarInt(object.ordinal() + 1, true);
 		}
 
-		public Enum read (Kryo kryo, Input input, Class<Enum> type) {
+		public Enum read (Kryo kryo, Input input, Class<? extends Enum> type) {
 			int ordinal = input.readVarInt(true);
 			if (ordinal == NULL) return null;
 			ordinal--;
@@ -412,7 +383,7 @@ public class DefaultSerializers {
 		}
 	}
 
-	static public class EnumSetSerializer extends Serializer<EnumSet> {
+	public static class EnumSetSerializer extends Serializer<EnumSet> {
 		public void write (Kryo kryo, Output output, EnumSet object) {
 			Serializer serializer;
 			if (object.isEmpty()) {
@@ -422,16 +393,16 @@ public class DefaultSerializers {
 			} else {
 				serializer = kryo.writeClass(output, object.iterator().next().getClass()).getSerializer();
 			}
-			output.writeInt(object.size(), true);
+			output.writeVarInt(object.size(), true);
 			for (Object element : object)
 				serializer.write(kryo, output, element);
 		}
 
-		public EnumSet read (Kryo kryo, Input input, Class<EnumSet> type) {
+		public EnumSet read (Kryo kryo, Input input, Class<? extends EnumSet> type) {
 			Registration registration = kryo.readClass(input);
 			EnumSet object = EnumSet.noneOf(registration.getType());
 			Serializer serializer = registration.getSerializer();
-			int length = input.readInt(true);
+			int length = input.readVarInt(true);
 			for (int i = 0; i < length; i++)
 				object.add(serializer.read(kryo, input, null));
 			return object;
@@ -443,9 +414,8 @@ public class DefaultSerializers {
 	}
 
 	/** @author <a href="mailto:martin.grotzke@javakaffee.de">Martin Grotzke</a> */
-	static public class CurrencySerializer extends Serializer<Currency> {
+	public static class CurrencySerializer extends ImmutableSerializer<Currency> {
 		{
-			setImmutable(true);
 			setAcceptsNull(true);
 		}
 
@@ -453,7 +423,7 @@ public class DefaultSerializers {
 			output.writeString(object == null ? null : object.getCurrencyCode());
 		}
 
-		public Currency read (Kryo kryo, Input input, Class<Currency> type) {
+		public Currency read (Kryo kryo, Input input, Class<? extends Currency> type) {
 			String currencyCode = input.readString();
 			if (currencyCode == null) return null;
 			return Currency.getInstance(currencyCode);
@@ -461,16 +431,16 @@ public class DefaultSerializers {
 	}
 
 	/** @author <a href="mailto:martin.grotzke@javakaffee.de">Martin Grotzke</a> */
-	static public class StringBufferSerializer extends Serializer<StringBuffer> {
+	public static class StringBufferSerializer extends Serializer<StringBuffer> {
 		{
 			setAcceptsNull(true);
 		}
 
 		public void write (Kryo kryo, Output output, StringBuffer object) {
-			output.writeString(object);
+			output.writeString(object == null ? null : object.toString());
 		}
 
-		public StringBuffer read (Kryo kryo, Input input, Class<StringBuffer> type) {
+		public StringBuffer read (Kryo kryo, Input input, Class<? extends StringBuffer> type) {
 			String value = input.readString();
 			if (value == null) return null;
 			return new StringBuffer(value);
@@ -482,16 +452,16 @@ public class DefaultSerializers {
 	}
 
 	/** @author <a href="mailto:martin.grotzke@javakaffee.de">Martin Grotzke</a> */
-	static public class StringBuilderSerializer extends Serializer<StringBuilder> {
+	public static class StringBuilderSerializer extends Serializer<StringBuilder> {
 		{
 			setAcceptsNull(true);
 		}
 
 		public void write (Kryo kryo, Output output, StringBuilder object) {
-			output.writeString(object);
+			output.writeString(object == null ? null : object.toString());
 		}
 
-		public StringBuilder read (Kryo kryo, Input input, Class<StringBuilder> type) {
+		public StringBuilder read (Kryo kryo, Input input, Class<? extends StringBuilder> type) {
 			return input.readStringBuilder();
 		}
 
@@ -500,12 +470,12 @@ public class DefaultSerializers {
 		}
 	}
 
-	static public class KryoSerializableSerializer extends Serializer<KryoSerializable> {
+	public static class KryoSerializableSerializer extends Serializer<KryoSerializable> {
 		public void write (Kryo kryo, Output output, KryoSerializable object) {
 			object.write(kryo, output);
 		}
 
-		public KryoSerializable read (Kryo kryo, Input input, Class<KryoSerializable> type) {
+		public KryoSerializable read (Kryo kryo, Input input, Class<? extends KryoSerializable> type) {
 			KryoSerializable object = kryo.newInstance(type);
 			kryo.reference(object);
 			object.read(kryo, input);
@@ -516,144 +486,131 @@ public class DefaultSerializers {
 	/** Serializer for lists created via {@link Collections#emptyList()} or that were just assigned the
 	 * {@link Collections#EMPTY_LIST}.
 	 * @author <a href="mailto:martin.grotzke@javakaffee.de">Martin Grotzke</a> */
-	static public class CollectionsEmptyListSerializer extends Serializer {
-		{
-			setImmutable(true);
+	public static class CollectionsEmptyListSerializer extends ImmutableSerializer<Collection> {
+		public void write (Kryo kryo, Output output, Collection object) {
 		}
 
-		public void write (Kryo kryo, Output output, Object object) {
-		}
-
-		public Object read (Kryo kryo, Input input, Class type) {
+		public Collection read (Kryo kryo, Input input, Class<? extends Collection> type) {
 			return Collections.EMPTY_LIST;
 		}
 	}
 
-	/** Serializer for maps created via {@link Collections#emptyMap()} or that were just assigned the {@link Collections#EMPTY_MAP}.
+	/** Serializer for maps created via {@link Collections#emptyMap()} or that were just assigned the
+	 * {@link Collections#EMPTY_MAP}.
 	 * @author <a href="mailto:martin.grotzke@javakaffee.de">Martin Grotzke</a> */
-	static public class CollectionsEmptyMapSerializer extends Serializer {
-		{
-			setImmutable(true);
+	public static class CollectionsEmptyMapSerializer extends ImmutableSerializer<Map> {
+		public void write (Kryo kryo, Output output, Map object) {
 		}
 
-		public void write (Kryo kryo, Output output, Object object) {
-		}
-
-		public Object read (Kryo kryo, Input input, Class type) {
+		public Map read (Kryo kryo, Input input, Class<? extends Map> type) {
 			return Collections.EMPTY_MAP;
 		}
 	}
 
-	/** Serializer for sets created via {@link Collections#emptySet()} or that were just assigned the {@link Collections#EMPTY_SET}.
+	/** Serializer for sets created via {@link Collections#emptySet()} or that were just assigned the
+	 * {@link Collections#EMPTY_SET}.
 	 * @author <a href="mailto:martin.grotzke@javakaffee.de">Martin Grotzke</a> */
-	static public class CollectionsEmptySetSerializer extends Serializer {
-		{
-			setImmutable(true);
+	public static class CollectionsEmptySetSerializer extends ImmutableSerializer<Set> {
+		public void write (Kryo kryo, Output output, Set object) {
 		}
 
-		public void write (Kryo kryo, Output output, Object object) {
-		}
-
-		public Object read (Kryo kryo, Input input, Class type) {
+		public Set read (Kryo kryo, Input input, Class<? extends Set> type) {
 			return Collections.EMPTY_SET;
 		}
 	}
 
 	/** Serializer for lists created via {@link Collections#singletonList(Object)}.
 	 * @author <a href="mailto:martin.grotzke@javakaffee.de">Martin Grotzke</a> */
-	static public class CollectionsSingletonListSerializer extends Serializer<List> {
-		{
-			setImmutable(true);
-		}
-
+	public static class CollectionsSingletonListSerializer extends Serializer<List> {
 		public void write (Kryo kryo, Output output, List object) {
 			kryo.writeClassAndObject(output, object.get(0));
 		}
 
-		public List read (Kryo kryo, Input input, Class type) {
+		public List read (Kryo kryo, Input input, Class<? extends List> type) {
 			return Collections.singletonList(kryo.readClassAndObject(input));
+		}
+
+		public List copy (Kryo kryo, List original) {
+			return Collections.singletonList(kryo.copy(original.get(0)));
 		}
 	}
 
 	/** Serializer for maps created via {@link Collections#singletonMap(Object, Object)}.
 	 * @author <a href="mailto:martin.grotzke@javakaffee.de">Martin Grotzke</a> */
-	static public class CollectionsSingletonMapSerializer extends Serializer<Map> {
-		{
-			setImmutable(true);
-		}
-
+	public static class CollectionsSingletonMapSerializer extends Serializer<Map> {
 		public void write (Kryo kryo, Output output, Map object) {
 			Entry entry = (Entry)object.entrySet().iterator().next();
 			kryo.writeClassAndObject(output, entry.getKey());
 			kryo.writeClassAndObject(output, entry.getValue());
 		}
 
-		public Map read (Kryo kryo, Input input, Class type) {
+		public Map read (Kryo kryo, Input input, Class<? extends Map> type) {
 			Object key = kryo.readClassAndObject(input);
 			Object value = kryo.readClassAndObject(input);
 			return Collections.singletonMap(key, value);
+		}
+
+		public Map copy (Kryo kryo, Map original) {
+			Entry entry = (Entry)original.entrySet().iterator().next();
+			return Collections.singletonMap(kryo.copy(entry.getKey()), kryo.copy(entry.getValue()));
 		}
 	}
 
 	/** Serializer for sets created via {@link Collections#singleton(Object)}.
 	 * @author <a href="mailto:martin.grotzke@javakaffee.de">Martin Grotzke</a> */
-	static public class CollectionsSingletonSetSerializer extends Serializer<Set> {
-		{
-			setImmutable(true);
-		}
-
+	public static class CollectionsSingletonSetSerializer extends Serializer<Set> {
 		public void write (Kryo kryo, Output output, Set object) {
 			kryo.writeClassAndObject(output, object.iterator().next());
 		}
 
-		public Set read (Kryo kryo, Input input, Class type) {
+		public Set read (Kryo kryo, Input input, Class<? extends Set> type) {
 			return Collections.singleton(kryo.readClassAndObject(input));
+		}
+
+		public Set copy (Kryo kryo, Set original) {
+			return Collections.singleton(kryo.copy(original.iterator().next()));
 		}
 	}
 
 	/** Serializer for {@link TimeZone}. Assumes the timezones are immutable.
 	 * @author Tumi <serverperformance@gmail.com> */
-	static public class TimeZoneSerializer extends Serializer<TimeZone> {
-		{
-			setImmutable(true);
-		}
-
+	public static class TimeZoneSerializer extends ImmutableSerializer<TimeZone> {
 		public void write (Kryo kryo, Output output, TimeZone object) {
 			output.writeString(object.getID());
 		}
 
-		public TimeZone read (Kryo kryo, Input input, Class<TimeZone> type) {
+		public TimeZone read (Kryo kryo, Input input, Class<? extends TimeZone> type) {
 			return TimeZone.getTimeZone(input.readString());
 		}
 	}
 
 	/** Serializer for {@link GregorianCalendar}, java.util.JapaneseImperialCalendar, and sun.util.BuddhistCalendar.
 	 * @author Tumi <serverperformance@gmail.com> */
-	static public class CalendarSerializer extends Serializer<Calendar> {
+	public static class CalendarSerializer extends Serializer<Calendar> {
 		// The default value of gregorianCutover.
-		static private final long DEFAULT_GREGORIAN_CUTOVER = -12219292800000L;
+		private static final long DEFAULT_GREGORIAN_CUTOVER = -12219292800000L;
 
 		TimeZoneSerializer timeZoneSerializer = new TimeZoneSerializer();
 
 		public void write (Kryo kryo, Output output, Calendar object) {
 			timeZoneSerializer.write(kryo, output, object.getTimeZone()); // can't be null
-			output.writeLong(object.getTimeInMillis(), true);
+			output.writeVarLong(object.getTimeInMillis(), true);
 			output.writeBoolean(object.isLenient());
 			output.writeInt(object.getFirstDayOfWeek(), true);
 			output.writeInt(object.getMinimalDaysInFirstWeek(), true);
 			if (object instanceof GregorianCalendar)
-				output.writeLong(((GregorianCalendar)object).getGregorianChange().getTime(), false);
+				output.writeVarLong(((GregorianCalendar)object).getGregorianChange().getTime(), false);
 			else
-				output.writeLong(DEFAULT_GREGORIAN_CUTOVER, false);
+				output.writeVarLong(DEFAULT_GREGORIAN_CUTOVER, false);
 		}
 
-		public Calendar read (Kryo kryo, Input input, Class<Calendar> type) {
+		public Calendar read (Kryo kryo, Input input, Class<? extends Calendar> type) {
 			Calendar result = Calendar.getInstance(timeZoneSerializer.read(kryo, input, TimeZone.class));
-			result.setTimeInMillis(input.readLong(true));
+			result.setTimeInMillis(input.readVarLong(true));
 			result.setLenient(input.readBoolean());
 			result.setFirstDayOfWeek(input.readInt(true));
 			result.setMinimalDaysInFirstWeek(input.readInt(true));
-			long gregorianChange = input.readLong(false);
+			long gregorianChange = input.readVarLong(false);
 			if (gregorianChange != DEFAULT_GREGORIAN_CUTOVER)
 				if (result instanceof GregorianCalendar) ((GregorianCalendar)result).setGregorianChange(new Date(gregorianChange));
 			return result;
@@ -666,174 +623,272 @@ public class DefaultSerializers {
 
 	/** Serializer for {@link TreeMap} and any subclass.
 	 * @author Tumi <serverperformance@gmail.com> (enhacements) */
-	static public class TreeMapSerializer extends MapSerializer {
-		public void write (Kryo kryo, Output output, Map map) {
-			TreeMap treeMap = (TreeMap)map;
-			kryo.writeClassAndObject(output, treeMap.comparator());
-			super.write(kryo, output, map);
+	public static class TreeMapSerializer extends MapSerializer<TreeMap> {
+		protected void writeHeader (Kryo kryo, Output output, TreeMap treeSet) {
+			kryo.writeClassAndObject(output, treeSet.comparator());
 		}
 
-		protected Map create (Kryo kryo, Input input, Class<Map> type) {
+		protected TreeMap create (Kryo kryo, Input input, Class<? extends TreeMap> type, int size) {
 			return createTreeMap(type, (Comparator)kryo.readClassAndObject(input));
 		}
 
-		protected Map createCopy (Kryo kryo, Map original) {
-			return createTreeMap(original.getClass(), ((TreeMap)original).comparator());
+		protected TreeMap createCopy (Kryo kryo, TreeMap original) {
+			return createTreeMap(original.getClass(), original.comparator());
 		}
-		
-		private TreeMap createTreeMap(Class<? extends Map> type, Comparator comparator) {
-			if (type != TreeMap.class && type != null) {
-				// For subclasses, use reflection
-				try {
-					Constructor constructor = type.getConstructor(Comparator.class);
-					if (!constructor.isAccessible()) {
-						try {
-							constructor.setAccessible(true);
-						}
-						catch (SecurityException se) {}
+
+		private TreeMap createTreeMap (Class<? extends TreeMap> type, Comparator comparator) {
+			if (type == TreeMap.class || type == null) return new TreeMap(comparator);
+			// Use reflection for subclasses.
+			try {
+				Constructor constructor = type.getConstructor(Comparator.class);
+				if (!constructor.isAccessible()) {
+					try {
+						constructor.setAccessible(true);
+					} catch (SecurityException ignored) {
 					}
-					return (TreeMap)constructor.newInstance(comparator);
-				} catch (Exception ex) {
-					throw new KryoException(ex);
 				}
+				return (TreeMap)constructor.newInstance(comparator);
+			} catch (Exception ex) {
+				throw new KryoException(ex);
 			}
-			return new TreeMap(comparator);
+		}
+	}
+
+	/** Serializer for {@link ConcurrentSkipListMap} and any subclass.
+	 * @author Mr14huashao <mr11huashao@gmail.com> (enhacements) */
+	public static class ConcurrentSkipListMapSerializer extends MapSerializer<ConcurrentSkipListMap> {
+		@Override
+		protected void writeHeader (Kryo kryo, Output output, ConcurrentSkipListMap concurrentSkipListMap) {
+			kryo.writeClassAndObject(output, concurrentSkipListMap.comparator());
+		}
+
+		@Override
+		protected ConcurrentSkipListMap create (Kryo kryo, Input input, Class<? extends ConcurrentSkipListMap> type,
+			int size) {
+			return createConcurrentSkipListMap(type, (Comparator)kryo.readClassAndObject(input));
+		}
+
+		@Override
+		protected ConcurrentSkipListMap createCopy (Kryo kryo, ConcurrentSkipListMap original) {
+			return createConcurrentSkipListMap(original.getClass(), original.comparator());
+		}
+
+		private ConcurrentSkipListMap createConcurrentSkipListMap (Class<? extends ConcurrentSkipListMap> type,
+			Comparator comparator) {
+			if (type == ConcurrentSkipListMap.class || type == null) {
+				return new ConcurrentSkipListMap(comparator);
+			}
+			// Use reflection for subclasses.
+			try {
+				Constructor constructor = type.getConstructor(Comparator.class);
+				if (!constructor.isAccessible()) {
+					try {
+						constructor.setAccessible(true);
+					} catch (SecurityException ignored) {
+					}
+				}
+				return (ConcurrentSkipListMap)constructor.newInstance(comparator);
+			} catch (Exception ex) {
+				throw new KryoException(ex);
+			}
 		}
 	}
 
 	/** Serializer for {@link TreeMap} and any subclass.
 	 * @author Tumi <serverperformance@gmail.com> (enhacements) */
-	static public class TreeSetSerializer extends CollectionSerializer {
-		public void write (Kryo kryo, Output output, Collection collection) {
-			TreeSet treeSet = (TreeSet)collection;
+	public static class TreeSetSerializer extends CollectionSerializer<TreeSet> {
+		protected void writeHeader (Kryo kryo, Output output, TreeSet treeSet) {
 			kryo.writeClassAndObject(output, treeSet.comparator());
-			super.write(kryo, output, collection);
 		}
 
-		protected TreeSet create (Kryo kryo, Input input, Class<Collection> type) {
+		protected TreeSet create (Kryo kryo, Input input, Class<? extends TreeSet> type, int size) {
 			return createTreeSet(type, (Comparator)kryo.readClassAndObject(input));
 		}
 
-		protected TreeSet createCopy (Kryo kryo, Collection original) {
-			return createTreeSet(original.getClass(), ((TreeSet)original).comparator());
+		protected TreeSet createCopy (Kryo kryo, TreeSet original) {
+			return createTreeSet(original.getClass(), original.comparator());
 		}
-		
-		private TreeSet createTreeSet(Class<? extends Collection> type, Comparator comparator) {
-			if (type != TreeSet.class && type != null) {
-				// For subclasses, use reflection
-				try {
-					Constructor constructor = type.getConstructor(Comparator.class);
-					if (!constructor.isAccessible()) {
-						try {
-							constructor.setAccessible(true);
-						}
-						catch (SecurityException se) {}
+
+		private TreeSet createTreeSet (Class<? extends Collection> type, Comparator comparator) {
+			if (type == TreeSet.class || type == null) return new TreeSet(comparator);
+			// Use reflection for subclasses.
+			try {
+				Constructor constructor = type.getConstructor(Comparator.class);
+				if (!constructor.isAccessible()) {
+					try {
+						constructor.setAccessible(true);
+					} catch (SecurityException ignored) {
 					}
-					return (TreeSet)constructor.newInstance(comparator);
-				} catch (Exception ex) {
-					throw new KryoException(ex);
 				}
+				return (TreeSet)constructor.newInstance(comparator);
+			} catch (Exception ex) {
+				throw new KryoException(ex);
 			}
-			return new TreeSet(comparator);
+		}
+	}
+
+	/** Serializer for {@link PriorityQueue} and any subclass.
+	 * @author Nathan Sweet */
+	public static class PriorityQueueSerializer extends CollectionSerializer<PriorityQueue> {
+		protected void writeHeader (Kryo kryo, Output output, PriorityQueue queue) {
+			kryo.writeClassAndObject(output, queue.comparator());
+		}
+
+		protected PriorityQueue create (Kryo kryo, Input input, Class<? extends PriorityQueue> type, int size) {
+			return createPriorityQueue(type, size, (Comparator)kryo.readClassAndObject(input));
+		}
+
+		protected PriorityQueue createCopy (Kryo kryo, PriorityQueue original) {
+			return createPriorityQueue(original.getClass(), original.size(), original.comparator());
+		}
+
+		private PriorityQueue createPriorityQueue (Class<? extends Collection> type, int size, Comparator comparator) {
+			if (type == PriorityQueue.class || type == null) return new PriorityQueue(size, comparator);
+			// Use reflection for subclasses.
+			try {
+				Constructor constructor = type.getConstructor(int.class, Comparator.class);
+				if (!constructor.isAccessible()) {
+					try {
+						constructor.setAccessible(true);
+					} catch (SecurityException ignored) {
+					}
+				}
+				return (PriorityQueue)constructor.newInstance(comparator);
+			} catch (Exception ex) {
+				throw new KryoException(ex);
+			}
 		}
 	}
 
 	/** Serializer for {@link Locale} (immutables).
 	 * @author Tumi <serverperformance@gmail.com> */
-	static public class LocaleSerializer extends Serializer<Locale> {
+	public static class LocaleSerializer extends ImmutableSerializer<Locale> {
 		// Missing constants in j.u.Locale for common locale
-		static public final Locale SPANISH = new Locale("es", "", "");
-		static public final Locale SPAIN = new Locale("es", "ES", "");
-		
-		{
-			setImmutable(true);
-		}
-		
-		protected Locale create(String language, String country, String variant) {
+		public static final Locale SPANISH = new Locale("es", "", "");
+		public static final Locale SPAIN = new Locale("es", "ES", "");
+
+		protected Locale create (String language, String country, String variant) {
 			// Fast-path for default locale in this system (may not be in the Locale constants list)
 			Locale defaultLocale = Locale.getDefault();
-			if (isSameLocale(defaultLocale, language, country, variant))
-				return defaultLocale;
+			if (isSameLocale(defaultLocale, language, country, variant)) return defaultLocale;
 			// Fast-paths for constants declared in java.util.Locale :
 			// 1. "US" locale (typical forced default in many applications)
-			if (defaultLocale!=Locale.US && isSameLocale(Locale.US, language, country, variant))
-				return Locale.US;
+			if (defaultLocale != Locale.US && isSameLocale(Locale.US, language, country, variant)) return Locale.US;
 			// 2. Language-only constant locales
-			if (isSameLocale(Locale.ENGLISH, language, country, variant))
-				return Locale.ENGLISH;
-			if (isSameLocale(Locale.GERMAN, language, country, variant))
-				return Locale.GERMAN;
-			if (isSameLocale(SPANISH, language, country, variant))
-				return SPANISH;
-			if (isSameLocale(Locale.FRENCH, language, country, variant))
-				return Locale.FRENCH;
-			if (isSameLocale(Locale.ITALIAN, language, country, variant))
-				return Locale.ITALIAN;
-			if (isSameLocale(Locale.JAPANESE, language, country, variant))
-				return Locale.JAPANESE;
-			if (isSameLocale(Locale.KOREAN, language, country, variant))
-				return Locale.KOREAN;
-			if (isSameLocale(Locale.SIMPLIFIED_CHINESE, language, country, variant))
-				return Locale.SIMPLIFIED_CHINESE;
-			if (isSameLocale(Locale.CHINESE, language, country, variant))
-				return Locale.CHINESE;
-			if (isSameLocale(Locale.TRADITIONAL_CHINESE, language, country, variant))
-				return Locale.TRADITIONAL_CHINESE;
+			if (isSameLocale(Locale.ENGLISH, language, country, variant)) return Locale.ENGLISH;
+			if (isSameLocale(Locale.GERMAN, language, country, variant)) return Locale.GERMAN;
+			if (isSameLocale(SPANISH, language, country, variant)) return SPANISH;
+			if (isSameLocale(Locale.FRENCH, language, country, variant)) return Locale.FRENCH;
+			if (isSameLocale(Locale.ITALIAN, language, country, variant)) return Locale.ITALIAN;
+			if (isSameLocale(Locale.JAPANESE, language, country, variant)) return Locale.JAPANESE;
+			if (isSameLocale(Locale.KOREAN, language, country, variant)) return Locale.KOREAN;
+			if (isSameLocale(Locale.SIMPLIFIED_CHINESE, language, country, variant)) return Locale.SIMPLIFIED_CHINESE;
+			if (isSameLocale(Locale.CHINESE, language, country, variant)) return Locale.CHINESE;
+			if (isSameLocale(Locale.TRADITIONAL_CHINESE, language, country, variant)) return Locale.TRADITIONAL_CHINESE;
 			// 2. Language with Country constant locales
-			if (isSameLocale(Locale.UK, language, country, variant))
-				return Locale.UK;
-			if (isSameLocale(Locale.GERMANY, language, country, variant))
-				return Locale.GERMANY;
-			if (isSameLocale(SPAIN, language, country, variant))
-				return SPAIN;
-			if (isSameLocale(Locale.FRANCE, language, country, variant))
-				return Locale.FRANCE;
-			if (isSameLocale(Locale.ITALY, language, country, variant))
-				return Locale.ITALY;
-			if (isSameLocale(Locale.JAPAN, language, country, variant))
-				return Locale.JAPAN;
-			if (isSameLocale(Locale.KOREA, language, country, variant))
-				return Locale.KOREA;
-			//if (isSameLocale(Locale.CHINA, language, country, variant)) // CHINA==SIMPLIFIED_CHINESE, see Locale.java
-			//	return Locale.CHINA;
-			//if (isSameLocale(Locale.PRC, language, country, variant)) // PRC==SIMPLIFIED_CHINESE, see Locale.java
-			//	return Locale.PRC;
-			//if (isSameLocale(Locale.TAIWAN, language, country, variant)) // TAIWAN==SIMPLIFIED_CHINESE, see Locale.java
-			//	return Locale.TAIWAN;
-			if (isSameLocale(Locale.CANADA, language, country, variant))
-				return Locale.CANADA;
-			if (isSameLocale(Locale.CANADA_FRENCH, language, country, variant))
-				return Locale.CANADA_FRENCH;
+			if (isSameLocale(Locale.UK, language, country, variant)) return Locale.UK;
+			if (isSameLocale(Locale.GERMANY, language, country, variant)) return Locale.GERMANY;
+			if (isSameLocale(SPAIN, language, country, variant)) return SPAIN;
+			if (isSameLocale(Locale.FRANCE, language, country, variant)) return Locale.FRANCE;
+			if (isSameLocale(Locale.ITALY, language, country, variant)) return Locale.ITALY;
+			if (isSameLocale(Locale.JAPAN, language, country, variant)) return Locale.JAPAN;
+			if (isSameLocale(Locale.KOREA, language, country, variant)) return Locale.KOREA;
+			// if (isSameLocale(Locale.CHINA, language, country, variant)) // CHINA==SIMPLIFIED_CHINESE, see Locale.java
+			// return Locale.CHINA;
+			// if (isSameLocale(Locale.PRC, language, country, variant)) // PRC==SIMPLIFIED_CHINESE, see Locale.java
+			// return Locale.PRC;
+			// if (isSameLocale(Locale.TAIWAN, language, country, variant)) // TAIWAN==SIMPLIFIED_CHINESE, see Locale.java
+			// return Locale.TAIWAN;
+			if (isSameLocale(Locale.CANADA, language, country, variant)) return Locale.CANADA;
+			if (isSameLocale(Locale.CANADA_FRENCH, language, country, variant)) return Locale.CANADA_FRENCH;
 
 			return new Locale(language, country, variant);
 		}
-		
-		public void write(Kryo kryo, Output output, Locale l) {
+
+		public void write (Kryo kryo, Output output, Locale l) {
 			output.writeAscii(l.getLanguage());
 			output.writeAscii(l.getCountry());
 			output.writeString(l.getVariant());
 		}
 
-		public Locale read (Kryo kryo, Input input, Class<Locale> type) {
+		public Locale read (Kryo kryo, Input input, Class<? extends Locale> type) {
 			String language = input.readString();
 			String country = input.readString();
 			String variant = input.readString();
 			return create(language, country, variant);
 		}
 
-		//Removed as Locale is declares as immutable
-		//public Locale copy (Kryo kryo, Locale original) {
-		//	return create(original.getLanguage(), original.getDisplayCountry(), original.getVariant());
-		//}
+		protected static boolean isSameLocale (Locale locale, String language, String country, String variant) {
+			return (locale.getLanguage().equals(language) && locale.getCountry().equals(country)
+				&& locale.getVariant().equals(variant));
+		}
+	}
 
-		protected static boolean isSameLocale(Locale locale, String language, String country, String variant) {
+	/** Serializer for {@link Charset}. */
+	public static class CharsetSerializer extends ImmutableSerializer<Charset> {
+		public void write (Kryo kryo, Output output, Charset object) {
+			output.writeString(object.name());
+		}
+
+		public Charset read (Kryo kryo, Input input, Class<? extends Charset> type) {
+			return Charset.forName(input.readString());
+		}
+	}
+
+	/** Serializer for {@link URL}. */
+	public static class URLSerializer extends ImmutableSerializer<URL> {
+		public void write (Kryo kryo, Output output, URL object) {
+			output.writeString(object.toExternalForm());
+		}
+
+		public URL read (Kryo kryo, Input input, Class<? extends URL> type) {
 			try {
-				return (locale.getLanguage().equals(language) && locale.getCountry().equals(country) && locale.getVariant().equals(variant));
+				return new java.net.URL(input.readString());
+			} catch (MalformedURLException ex) {
+				throw new KryoException(ex);
 			}
-			catch (NullPointerException npe) {
-				// Shouldn't ever happen, no nulls
-				return false;
+		}
+	}
+
+	/** Serializer for {@link Arrays#asList(Object...)}. */
+	public static class ArraysAsListSerializer extends CollectionSerializer<List> {
+		protected List create (Kryo kryo, Input input, Class type, int size) {
+			return new ArrayList(size);
+		}
+
+		public List read (Kryo kryo, Input input, Class type) {
+			List list = super.read(kryo, input, type);
+			if (list == null) return null;
+			return Arrays.asList(list.toArray());
+		}
+
+		public List copy (Kryo kryo, List original) {
+			Object[] copyArr = new Object[original.size()];
+			List<Object> copy = Arrays.asList(copyArr);
+			kryo.reference(copy);
+			for (int i = 0; i < original.size(); i++) {
+				copyArr[i] = kryo.copy(original.get(i));
 			}
+			return copy;
+		}
+	}
+
+	public static class BitSetSerializer extends Serializer<BitSet> {
+		public void write (Kryo kryo, Output output, BitSet set) {
+			long[] values = set.toLongArray();
+			output.writeVarInt(values.length, true);
+			output.writeLongs(values, 0, values.length);
+		}
+
+		public BitSet read (Kryo kryo, Input input, Class type) {
+			int length = input.readVarInt(true);
+			long[] values = input.readLongs(length);
+			BitSet set = BitSet.valueOf(values);
+			return set;
+		}
+
+		public BitSet copy (Kryo kryo, BitSet original) {
+			return BitSet.valueOf(original.toLongArray());
 		}
 	}
 }
